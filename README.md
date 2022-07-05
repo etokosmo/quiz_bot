@@ -11,15 +11,21 @@
 ## Пример работы программы
 Пример результата для Telegram:
 
+Реальный [пример бота tg](https://t.me/etokosmo1337_bot):
+
+
 ![Пример результата для Telegram](https://dvmn.org/filer/canonical/1569215494/324/)
 
 Пример результата для ВКонтакте:
+
+Реальный [пример бота vk](https://vk.com/im?media=&sel=-165088738): 
+
 
 ![Пример результата для ВКонтакте](https://dvmn.org/filer/canonical/1569215498/325/)
 
 ## Конфигурации
 
-* Python version: 3.9
+* Python version: 3.8.5
 * Libraries: requirements.txt
 
 ## Запуск
