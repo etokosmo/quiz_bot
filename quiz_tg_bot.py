@@ -9,8 +9,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, \
     ConversationHandler, RegexHandler
 
 from format_answer import format_answer
-from redis_tools import auth_redis, get_random_question, set_user_question, \
-    get_user_question, get_answer
+from redis_tools import auth_redis
 
 logger = logging.getLogger(__name__)
 
@@ -30,14 +29,14 @@ def start(bot, update):
 
 
 def handle_new_question_request(bot, update, quiz_db):
-    question = get_random_question(quiz_db)
-    set_user_question(quiz_db, update.effective_user.id, question)
+    question = quiz_db.randomkey()
+    quiz_db.set(update.effective_user.id, question)
     update.message.reply_text(question)
 
 
 def handle_solution_attempt(bot, update, quiz_db):
-    question = get_user_question(quiz_db, update.effective_user.id)
-    answer = format_answer(get_answer(quiz_db, question))
+    question = quiz_db.get(update.effective_user.id)
+    answer = format_answer(quiz_db.get(question))
     user_answer = format_answer(update.message.text)
     if (user_answer in answer) and (len(answer) * 0.25 < len(user_answer)):
         update.message.reply_text(
@@ -47,8 +46,8 @@ def handle_solution_attempt(bot, update, quiz_db):
 
 
 def handle_give_up(bot, update, quiz_db):
-    question = get_user_question(quiz_db, update.effective_user.id)
-    answer = get_answer(quiz_db, question)
+    question = quiz_db.get(update.effective_user.id)
+    answer = quiz_db.get(question)
     update.message.reply_text(f"Правильный ответ: {answer}")
 
 
