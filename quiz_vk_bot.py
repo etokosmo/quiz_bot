@@ -14,7 +14,7 @@ from redis_tools import auth_redis, get_random_question, set_user_question, \
 logger = logging.getLogger(__name__)
 
 
-def handle_new_question_request(event, vk_api, keyboard):
+def handle_new_question_request(event, vk_api, keyboard, quiz_db):
     question = get_random_question(quiz_db)
     set_user_question(quiz_db, event.user_id, question)
     vk_api.messages.send(
@@ -25,7 +25,7 @@ def handle_new_question_request(event, vk_api, keyboard):
     )
 
 
-def handle_solution_attempt(event, vk_api, keyboard):
+def handle_solution_attempt(event, vk_api, keyboard, quiz_db):
     question = get_user_question(quiz_db, event.user_id)
     answer = format_answer(get_answer(quiz_db, question))
     user_answer = format_answer(event.text)
@@ -47,7 +47,7 @@ def handle_solution_attempt(event, vk_api, keyboard):
         )
 
 
-def handle_give_up(event, vk_api, keyboard):
+def handle_give_up(event, vk_api, keyboard, quiz_db):
     question = get_user_question(quiz_db, event.user_id)
     answer = get_answer(quiz_db, question)
     vk_api.messages.send(
@@ -85,7 +85,6 @@ def main():
     redis_port = env("REDIS_PORT")
     redis_password = env("REDIS_PASSWORD")
 
-    global quiz_db
     quiz_db = auth_redis(redis_address, redis_port, redis_password)
 
     params = {
@@ -105,11 +104,12 @@ def main():
         try:
             if event.type == VkEventType.MESSAGE_NEW and event.to_me:
                 if event.text == "Сдаться":
-                    handle_give_up(event, vk_api, keyboard)
+                    handle_give_up(event, vk_api, keyboard, quiz_db)
                 if event.text == "Новый вопрос":
-                    handle_new_question_request(event, vk_api, keyboard)
+                    handle_new_question_request(event, vk_api, keyboard,
+                                                quiz_db)
                 else:
-                    handle_solution_attempt(event, vk_api, keyboard)
+                    handle_solution_attempt(event, vk_api, keyboard, quiz_db)
         except Exception as err:
             logging.error("Error was raising:", err)
 

@@ -1,5 +1,6 @@
 import logging
 from enum import Enum
+from functools import partial
 
 from environs import Env
 from notifiers.logging import NotificationHandler
@@ -28,13 +29,13 @@ def start(bot, update):
     return QuizStates.CHOOSING
 
 
-def handle_new_question_request(bot, update):
+def handle_new_question_request(bot, update, quiz_db):
     question = get_random_question(quiz_db)
     set_user_question(quiz_db, update.effective_user.id, question)
     update.message.reply_text(question)
 
 
-def handle_solution_attempt(bot, update):
+def handle_solution_attempt(bot, update, quiz_db):
     question = get_user_question(quiz_db, update.effective_user.id)
     answer = format_answer(get_answer(quiz_db, question))
     user_answer = format_answer(update.message.text)
@@ -45,7 +46,7 @@ def handle_solution_attempt(bot, update):
         update.message.reply_text("Неправильно… Попробуешь ещё раз?")
 
 
-def handle_give_up(bot, update):
+def handle_give_up(bot, update, quiz_db):
     question = get_user_question(quiz_db, update.effective_user.id)
     answer = get_answer(quiz_db, question)
     update.message.reply_text(f"Правильный ответ: {answer}")
@@ -79,7 +80,6 @@ def main():
     redis_port = env("REDIS_PORT")
     redis_password = env("REDIS_PASSWORD")
 
-    global quiz_db
     quiz_db = auth_redis(redis_address, redis_port, redis_password)
 
     params = {
@@ -92,13 +92,22 @@ def main():
     updater = Updater(telegram_api_token)
     dp = updater.dispatcher
 
+    handle_new_question_request_with_args = partial(
+        handle_new_question_request, quiz_db=quiz_db)
+    handle_give_up_with_args = partial(
+        handle_give_up, quiz_db=quiz_db)
+    handle_solution_attempt_with_args = partial(
+        handle_solution_attempt, quiz_db=quiz_db)
+
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
             QuizStates.CHOOSING: [
-                RegexHandler('^Новый вопрос$', handle_new_question_request),
-                RegexHandler('^Сдаться$', handle_give_up),
-                MessageHandler(Filters.text, handle_solution_attempt),
+                RegexHandler('^Новый вопрос$',
+                             handle_new_question_request_with_args),
+                RegexHandler('^Сдаться$', handle_give_up_with_args),
+                MessageHandler(Filters.text,
+                               handle_solution_attempt_with_args),
             ]
         },
 
